@@ -18,8 +18,8 @@ Estado del roadmap:
 |-------|--------|-------------|
 | 1. Exploración | Hecho | Observación y diagnóstico del dato crudo. |
 | 2. Preprocesamiento | Hecho | Tipado de fechas, separación código/nombre, depuración. |
-| 3. EDA | En curso | Análisis exploratorio y estadísticas descriptivas. |
-| 4. Visualización | Pendiente | Tendencias temporales y comparativas territoriales. |
+| 3. EDA | Hecho | Análisis exploratorio y estadísticas descriptivas. |
+| 4. Visualización | Hecho | Tendencias temporales y comparativas territoriales (integrada en el EDA). |
 | 5. Modelado | Pendiente | Modelos predictivos / inferenciales. |
 
 ## Estructura
