@@ -17,8 +17,8 @@ Estado del roadmap:
 | Etapa | Estado | Descripción |
 |-------|--------|-------------|
 | 1. Exploración | Hecho | Observación y diagnóstico del dato crudo. |
-| 2. Preprocesamiento | En curso | Tipado de fechas, separación código/nombre, depuración. |
-| 3. EDA | Pendiente | Análisis exploratorio y estadísticas descriptivas. |
+| 2. Preprocesamiento | Hecho | Tipado de fechas, separación código/nombre, depuración. |
+| 3. EDA | En curso | Análisis exploratorio y estadísticas descriptivas. |
 | 4. Visualización | Pendiente | Tendencias temporales y comparativas territoriales. |
 | 5. Modelado | Pendiente | Modelos predictivos / inferenciales. |
 
@@ -27,6 +27,7 @@ Estado del roadmap:
 ```
 mi-proyecto-pip/
 ├── Proyecto_PRASS_Seguimiento_COVID19.ipynb   # Entregable único (análisis + justificación)
+├── utils.py                                    # Funciones reutilizables (carga, transformaciones)
 ├── requirements.txt
 ├── .env.example
 ├── .gitignore
