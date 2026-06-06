@@ -51,12 +51,61 @@ def agregar_cobertura(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+# Variables de baja cardinalidad que se tratan como categóricas.
+COLS_CATEGORIA = (
+    "Fuente",
+    "EntidadRegistro",
+    "DepartamentoCodigo",
+    "DepartamentoNombre",
+    "MunicipioCodigo",
+    "MunicipioNombre",
+)
+# Códigos DIVIPOLA: son identificadores (conservan ceros a la izquierda), no
+# magnitudes; no deben convertirse a tipo numérico.
+COLS_IDENTIFICADOR = ("DepartamentoCodigo", "MunicipioCodigo")
+
+
+def diagnosticar_tipos(df: pd.DataFrame) -> pd.DataFrame:
+    """Para cada columna no numérica y no fecha, informa si su contenido es
+    convertible a número y si corresponde a un identificador. Sirve para
+    detectar numéricas mal tipadas como texto sin convertir códigos por error."""
+    filas = []
+    for c in df.select_dtypes(exclude=["number", "datetime"]).columns:
+        convertible = bool(pd.to_numeric(df[c], errors="coerce").notna().all())
+        filas.append(
+            {
+                "columna": c,
+                "dtype": str(df[c].dtype),
+                "convertible_a_numerico": convertible,
+                "es_identificador": c in COLS_IDENTIFICADOR,
+            }
+        )
+    return pd.DataFrame(filas)
+
+
+def tipar_columnas(df: pd.DataFrame) -> pd.DataFrame:
+    """Convierte a `category` las variables de baja cardinalidad y trata la
+    semana epidemiológica como categoría ordinal (1..53). Los identificadores
+    permanecen como categoría textual, no como número."""
+    df = df.copy()
+    for c in COLS_CATEGORIA:
+        if c in df.columns:
+            df[c] = df[c].astype("category")
+    if "FechaRegistroSemana" in df.columns:
+        semanas = sorted(df["FechaRegistroSemana"].unique())
+        df["FechaRegistroSemana"] = df["FechaRegistroSemana"].astype(
+            pd.CategoricalDtype(categories=semanas, ordered=True)
+        )
+    return df
+
+
 def preprocesar(df: pd.DataFrame) -> pd.DataFrame:
     """Pipeline completo de preprocesamiento del dato PRASS.
 
     Aplica, en orden: tipado de fecha, separación de código y nombre
-    territorial, estandarización de texto, recálculo de cobertura y eliminación
-    de columnas constantes o corruptas. Devuelve un nuevo DataFrame.
+    territorial, estandarización de texto, recálculo de cobertura, eliminación
+    de columnas constantes o corruptas y tipado de categóricas. Devuelve un
+    nuevo DataFrame.
     """
     df = df.copy()
     df["FechaRegistro"] = parsear_fecha(df["FechaRegistro"])
@@ -75,4 +124,5 @@ def preprocesar(df: pd.DataFrame) -> pd.DataFrame:
             "Municipio",
         ]
     )
+    df = tipar_columnas(df)
     return df
