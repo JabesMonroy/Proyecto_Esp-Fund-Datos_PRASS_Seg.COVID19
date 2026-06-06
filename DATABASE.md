@@ -44,16 +44,15 @@ Las columnas `PorcentajeCasos*` no están en una escala consistente:
 porcentaje desde las columnas de conteo:
 `PctConSeguimiento = NumeroCasosConSeguimiento / NumeroCasos`.
 
-### 2. ⚠️ Filas desalineadas por comas sin escapar
-~2,3 % de las filas tienen **13 o 14 campos** en lugar de 12, por **comas sin escapar**
-dentro de campos de texto (típicamente `EntidadRegistro`). Distribución en muestra de 50k:
-- 12 campos: ~97,7 %
-- 13 campos: ~0,25 %
-- 14 campos: ~2,0 %
+### 2. Comas internas en campos entrecomillados (NO hay desalineación)
+Algunos territorios contienen comas en el nombre (p. ej. `"11001 - BOGOTÁ, D.C."`,
+7.032 filas). En el archivo **están entrecomillados** según RFC 4180, por lo que el
+lector por defecto de `pandas` (`pd.read_csv`) los parsea correctamente: las 339.646
+filas cargan sin desalineación ni valores nulos.
 
-**Estrategia recomendada:** parsear con un motor tolerante (`pandas` con
-`engine="python"` / `on_bad_lines`) o reconstruir los campos de texto fusionando los
-campos sobrantes hacia `EntidadRegistro`.
+> Nota: un conteo ingenuo de comas por línea (sin considerar comillas) sugiere ~2,3 %
+> de filas con 13–14 campos. Es un **falso positivo**: esas comas viven dentro de
+> comillas. No se requiere parser tolerante.
 
 ### 3. Campos codificados `CÓDIGO - NOMBRE`
 `Departamento` y `Municipio` mezclan código DIVIPOLA y nombre en un solo campo.
