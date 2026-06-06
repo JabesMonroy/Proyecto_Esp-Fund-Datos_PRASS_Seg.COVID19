@@ -1,0 +1,14 @@
+# Núcleo de datos
+pandas>=2.0
+numpy>=1.24
+pyarrow>=14.0          # soporte parquet
+
+# Configuración
+python-dotenv>=1.0
+
+# EDA / visualización (etapas posteriores)
+matplotlib>=3.7
+seaborn>=0.13
+
+# Modelado (etapa posterior)
+scikit-learn>=1.3

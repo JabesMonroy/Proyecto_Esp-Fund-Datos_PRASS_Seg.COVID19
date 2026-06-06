@@ -1,0 +1,30 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Variables de entorno (no versionar secretos/rutas locales)
+.env
+
+# Caché de Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# Datos derivados / generados (el CSV crudo SÍ se versiona)
+data/processed.parquet
+data/*_clean.csv
+data/interim/
+data/output/
+
+# Artefactos de análisis
+*.log
+figures/
+models/
+
+# Sistema operativo / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
