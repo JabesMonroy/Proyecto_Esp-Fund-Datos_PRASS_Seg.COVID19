@@ -10,6 +10,7 @@ Fuente: `data/SegCovid19-Seguimiento_PRASS.csv`
 | Separador | coma (`,`) |
 | Codificación | UTF-8 (sin BOM) |
 | Origen    | Programa PRASS — Seguimiento COVID-19 (Colombia) |
+| Fuente    | datos.gov.co · conjunto `r6r5-w84k` ([descarga](https://www.datos.gov.co/api/views/r6r5-w84k/rows.csv?accessType=DOWNLOAD)) |
 
 ## Diccionario de datos
 
