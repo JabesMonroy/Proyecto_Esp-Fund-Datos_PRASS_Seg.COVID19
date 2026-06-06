@@ -6,6 +6,9 @@ env/
 # Variables de entorno (no versionar secretos/rutas locales)
 .env
 
+# Instrucciones internas para Claude (no subir)
+CLAUDE.md
+
 # Caché de Python
 __pycache__/
 *.py[cod]
