@@ -3,66 +3,60 @@
 Análisis de datos del programa **PRASS** (Pruebas, Rastreo y Aislamiento Selectivo
 Sostenible) sobre el seguimiento a casos COVID-19 en Colombia.
 
-> Proyecto de la Especialización — *Fundamentos de Ciencias de Datos*.
+> Proyecto de la Especialización — *Fundamentos de Ciencia de Datos*.
 
 ## Objetivo
 
-Construir un pipeline reproducible que vaya, por etapas, desde la **limpieza** del
-dato crudo hasta **modelos predictivos** y otros estudios analíticos.
+Desarrollar, de forma reproducible y como **entregable único**, un análisis que avance
+por etapas desde la **exploración y limpieza** del dato hasta **modelos predictivos** y
+otros estudios. Todo el trabajo vive en un solo cuaderno Jupyter, donde cada decisión se
+justifica de manera breve.
 
-Estado actual del roadmap:
+Estado del roadmap:
 
 | Etapa | Estado | Descripción |
 |-------|--------|-------------|
-| 1. Preprocesamiento | 🚧 En curso | Carga, saneamiento y normalización del CSV crudo. |
-| 2. EDA | ⏳ Pendiente | Análisis exploratorio y estadísticas descriptivas. |
-| 3. Visualización | ⏳ Pendiente | Tendencias temporales y comparativas territoriales. |
-| 4. Modelado | ⏳ Pendiente | Modelos predictivos / inferenciales. |
+| 1. Exploración | Hecho | Observación y diagnóstico del dato crudo. |
+| 2. Preprocesamiento | En curso | Tipado de fechas, separación código/nombre, depuración. |
+| 3. EDA | Pendiente | Análisis exploratorio y estadísticas descriptivas. |
+| 4. Visualización | Pendiente | Tendencias temporales y comparativas territoriales. |
+| 5. Modelado | Pendiente | Modelos predictivos / inferenciales. |
 
-## Estructura del repositorio
+## Estructura
 
 ```
 mi-proyecto-pip/
-├── main.py            # Punto de entrada (CLI por etapas)
-├── utils.py           # Funciones reutilizables (carga, rutas, config)
-├── requirements.txt   # Dependencias
-├── .env.example       # Plantilla de variables de entorno
+├── Proyecto_PRASS_Seguimiento_COVID19.ipynb   # Entregable único (análisis + justificación)
+├── requirements.txt
+├── .env.example
 ├── .gitignore
 ├── README.md
-├── WORKFLOWS.md       # Flujos de trabajo y comandos
-├── DATABASE.md        # Diccionario de datos y calidad del dato
+├── WORKFLOWS.md
+├── DATABASE.md
 └── data/
-    └── SegCovid19-Seguimiento_PRASS.csv   # Dato crudo
+    └── SegCovid19-Seguimiento_PRASS.csv        # Dato crudo
 ```
 
 ## Inicio rápido
 
 ```bash
-# 1. Crear y activar entorno virtual
 python -m venv .venv
-.venv\Scripts\activate        # Windows (PowerShell)
-# source .venv/bin/activate   # Linux / macOS
-
-# 2. Instalar dependencias
+.venv\Scripts\activate            # Windows (PowerShell)
 pip install -r requirements.txt
-
-# 3. Configurar variables de entorno
-copy .env.example .env        # Windows
-# cp .env.example .env        # Linux / macOS
-
-# 4. Ejecutar (etapa de preprocesamiento)
-python main.py preprocess
+jupyter lab                       # o abrir el .ipynb en VS Code
 ```
+
+Abrir `Proyecto_PRASS_Seguimiento_COVID19.ipynb` y ejecutar las celdas en orden.
 
 ## Datos
 
-El dataset crudo (`data/SegCovid19-Seguimiento_PRASS.csv`, ~46 MB) se incluye en el
-repositorio. Su diccionario de datos, formato y problemas de calidad detectados se
-documentan en [DATABASE.md](DATABASE.md).
+El dataset crudo (`data/SegCovid19-Seguimiento_PRASS.csv`, ~46 MB) se versiona en el
+repositorio. Su diccionario de datos y problemas de calidad están en
+[DATABASE.md](DATABASE.md).
 
 ## Documentación
 
-- [WORKFLOWS.md](WORKFLOWS.md) — flujos de trabajo, comandos y convenciones.
+- [WORKFLOWS.md](WORKFLOWS.md) — flujo de ramas y convenciones.
 - [DATABASE.md](DATABASE.md) — diccionario de datos y calidad del dato.
 
 ## Autor

@@ -1,6 +1,8 @@
-# WORKFLOWS.md — Flujos de trabajo
+# WORKFLOWS.md — Flujo de trabajo
 
-Convenciones y comandos para trabajar el proyecto por etapas.
+El proyecto se desarrolla sobre un **único cuaderno**:
+`Proyecto_PRASS_Seguimiento_COVID19.ipynb`. Cada decisión se justifica de forma breve,
+con lenguaje académico y sin emojis.
 
 ## Entorno
 
@@ -8,54 +10,39 @@ Convenciones y comandos para trabajar el proyecto por etapas.
 python -m venv .venv
 .venv\Scripts\activate          # Windows PowerShell
 pip install -r requirements.txt
-copy .env.example .env          # ajustar rutas si hace falta
 ```
 
-## CLI por etapas
+Abrir el `.ipynb` en JupyterLab o VS Code y ejecutar las celdas en orden.
 
-`main.py` expone subcomandos, uno por etapa del pipeline. Solo
-`preprocess` está habilitado; el resto son marcadores de posición.
+## Roadmap
+
+1. **Exploración** (hecha): naturaleza del dato, faltantes, unicidad, varianza nula,
+   outliers, calidad de porcentajes, test de Little (no aplica).
+2. **Preprocesamiento** (en curso): conversión de fechas, separación de
+   `Departamento`/`Municipio` en código y nombre, eliminación de la columna constante
+   `FechaCorte` y recálculo de la cobertura de seguimiento (ver [DATABASE.md](DATABASE.md)).
+3. **EDA** — estadísticas descriptivas y agregados.
+4. **Visualización** — series temporales y comparativas territoriales.
+5. **Modelado** — features y modelos predictivos.
+
+## Flujo de ramas
+
+- `main`: estable; recibe fusiones tras cambios grandes.
+- `develop`: rama principal de trabajo.
+- `feature/<tema>`: mini-rama dentro de `develop` por cada cambio o plan grande; al
+  terminar se fusiona a `develop`.
 
 ```bash
-python main.py preprocess       # Etapa 1: limpieza/normalización  (EN CURSO)
-python main.py eda              # Etapa 2: análisis exploratorio    (pendiente)
-python main.py viz              # Etapa 3: visualizaciones          (pendiente)
-python main.py model            # Etapa 4: modelado                 (pendiente)
+git checkout develop
+git checkout -b feature/<tema>
+# ... trabajo ...
+git add -A && git commit -m "descripción en español"
+git checkout develop && git merge --no-ff feature/<tema>
+git push origin develop
 ```
-
-Opciones comunes:
-
-```bash
-python main.py preprocess --input data/SegCovid19-Seguimiento_PRASS.csv \
-                          --output data/processed.parquet
-```
-
-## Roadmap de desarrollo
-
-1. **Preprocesamiento** (etapa actual). Tareas previstas en `utils.py`:
-   - Carga tolerante a filas desalineadas (comas sin escapar).
-   - Separar `Departamento`/`Municipio` en código y nombre.
-   - Parsear `FechaRegistro` y `FechaCorte` a `datetime`.
-   - Recalcular porcentajes desde los conteos (las columnas `Porcentaje*`
-     vienen corruptas — ver [DATABASE.md](DATABASE.md)).
-   - Exportar dataset limpio (`parquet`).
-2. **EDA** — estadísticas descriptivas, agregados por departamento/fuente/semana.
-3. **Visualización** — series temporales y comparativas territoriales.
-4. **Modelado** — features + modelos predictivos.
 
 ## Convenciones
 
-- **Datos:** crudos en `data/`; los derivados (`*.parquet`, `*_clean.csv`) se
-  ignoran en git (ver `.gitignore`), salvo el crudo que sí se versiona.
-- **Ramas:** `main` estable; `feature/<etapa>` para trabajo en curso.
-- **Commits:** mensajes en español, imperativo (`agrega…`, `corrige…`).
-- **Estilo:** funciones reutilizables en `utils.py`; `main.py` solo orquesta.
-
-## Git
-
-```bash
-git checkout -b feature/preprocesamiento
-git add -A
-git commit -m "agrega limpieza de columnas de porcentaje"
-git push -u origin feature/preprocesamiento
-```
+- **Commits:** en español, modo imperativo (`agrega…`, `corrige…`). Autor único: Jabes
+  Monroy (sin coautores).
+- **Datos:** el CSV crudo se versiona; los derivados se ignoran (ver `.gitignore`).
