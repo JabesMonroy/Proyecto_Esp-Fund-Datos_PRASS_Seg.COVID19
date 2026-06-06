@@ -99,6 +99,22 @@ def tipar_columnas(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def cobertura_ponderada(
+    df: pd.DataFrame, por, min_casos: int = 0
+) -> pd.DataFrame:
+    """Cobertura de seguimiento (%) por grupo, ponderada por casos:
+    `sum(ConSeguimiento) / sum(NumeroCasos)`. Filtra grupos con menos de
+    `min_casos` y devuelve el resultado ordenado de menor a mayor cobertura."""
+    g = (
+        df.groupby(por, observed=True)
+        .agg(casos=("NumeroCasos", "sum"), con=("NumeroCasosConSeguimiento", "sum"))
+        .reset_index()
+    )
+    g = g[g["casos"] >= min_casos]
+    g["CoberturaPct"] = (g["con"] / g["casos"] * 100).round(2)
+    return g.sort_values("CoberturaPct").reset_index(drop=True)
+
+
 def preprocesar(df: pd.DataFrame) -> pd.DataFrame:
     """Pipeline completo de preprocesamiento del dato PRASS.
 
