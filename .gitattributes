@@ -1,0 +1,5 @@
+# Tratar binarios sin conversión de fin de línea (evita corrupción)
+*.pdf binary
+*.csv binary
+# Los notebooks se versionan sin conversión de EOL
+*.ipynb -text

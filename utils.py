@@ -1,88 +1,144 @@
 """utils.py — Funciones reutilizables del proyecto PRASS.
 
-Configuración, rutas y carga de datos. La lógica de limpieza concreta
-se implementará en la etapa de preprocesamiento (ver TODOs).
+Carga del dataset y transformaciones de preprocesamiento. Este módulo se importa
+desde el cuaderno `Proyecto_PRASS_Seguimiento_COVID19.ipynb` para evitar duplicar
+código y mantener el análisis legible.
 """
 from __future__ import annotations
 
-import logging
-import os
 from pathlib import Path
 
-try:
-    from dotenv import load_dotenv
+import pandas as pd
 
-    load_dotenv()
-except ImportError:  # python-dotenv es opcional en tiempo de ejecución
-    pass
-
-# --- Rutas base -----------------------------------------------------------
-ROOT = Path(__file__).resolve().parent
-DATA_DIR = ROOT / "data"
-
-DATA_RAW = Path(os.getenv("DATA_RAW", DATA_DIR / "SegCovid19-Seguimiento_PRASS.csv"))
-DATA_PROCESSED = Path(os.getenv("DATA_PROCESSED", DATA_DIR / "processed.parquet"))
-
-# Esquema esperado del CSV crudo (12 columnas, separador coma, UTF-8).
-COLUMNAS = [
-    "Fuente",
-    "FechaRegistro",
-    "FechaRegistroSemana",
-    "Departamento",
-    "Municipio",
-    "EntidadRegistro",
-    "NumeroCasos",
-    "NumeroCasosSinSeguimiento",
-    "NumeroCasosConSeguimiento",
-    "PorcentajeCasosSinSeguimiento",
-    "PorcentajeCasosConSeguimiento",
-    "FechaCorte",
-]
+RUTA_DATOS = "data/SegCovid19-Seguimiento_PRASS.csv"
 
 
-# --- Logging --------------------------------------------------------------
-def get_logger(name: str = "prass") -> logging.Logger:
-    """Devuelve un logger configurado según LOG_LEVEL."""
-    logger = logging.getLogger(name)
-    if not logger.handlers:
-        handler = logging.StreamHandler()
-        handler.setFormatter(
-            logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
-        )
-        logger.addHandler(handler)
-    logger.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
-    return logger
+def cargar_datos(ruta: str | Path = RUTA_DATOS) -> pd.DataFrame:
+    """Carga el CSV crudo. El lector por defecto respeta el entrecomillado
+    (RFC 4180), por lo que las comas internas de los nombres no desalinean."""
+    return pd.read_csv(ruta)
 
 
-# --- Carga de datos -------------------------------------------------------
-def cargar_crudo(path: Path | str = DATA_RAW):
-    """Carga el CSV crudo de forma tolerante a filas desalineadas.
-
-    El archivo tiene ~2,3 % de filas con comas sin escapar dentro de campos
-    de texto (ver DATABASE.md). Se usa el motor de Python para saltar/avisar
-    sobre líneas problemáticas sin interrumpir la carga.
-    """
-    import pandas as pd  # import perezoso: arranque más rápido del CLI
-
-    log = get_logger()
-    path = Path(path)
-    if not path.exists():
-        raise FileNotFoundError(f"No se encontró el dato crudo: {path}")
-
-    log.info("Cargando %s", path)
-    df = pd.read_csv(
-        path,
-        sep=",",
-        encoding="utf-8",
-        engine="python",
-        on_bad_lines="warn",
+def separar_codigo_nombre(serie: pd.Series) -> pd.DataFrame:
+    """Divide un campo con formato 'codigo - NOMBRE' en columnas independientes
+    `codigo` y `nombre`. Solo separa en el primer ' - '."""
+    partes = serie.astype(str).str.split(" - ", n=1, expand=True)
+    return pd.DataFrame(
+        {"codigo": partes[0].str.strip(), "nombre": partes[1].str.strip()}
     )
-    log.info("Cargado: %d filas x %d columnas", len(df), df.shape[1])
+
+
+def parsear_fecha(serie: pd.Series) -> pd.Series:
+    """Convierte 'MM/DD/AAAA hh:mm:ss AM/PM' a fecha (a medianoche, sin hora)."""
+    return pd.to_datetime(serie, format="%m/%d/%Y %I:%M:%S %p").dt.normalize()
+
+
+def estandarizar_texto(serie: pd.Series) -> pd.Series:
+    """Recorta espacios en los bordes y colapsa espacios múltiples internos."""
+    return serie.astype(str).str.strip().str.replace(r"\s+", " ", regex=True)
+
+
+def agregar_cobertura(df: pd.DataFrame) -> pd.DataFrame:
+    """Agrega la cobertura de seguimiento (%) recalculada desde los conteos,
+    en reemplazo de las columnas de porcentaje corruptas del origen."""
+    df = df.copy()
+    df["CoberturaConSeguimiento"] = (
+        df["NumeroCasosConSeguimiento"] / df["NumeroCasos"] * 100
+    ).round(2)
+    df["CoberturaSinSeguimiento"] = (
+        df["NumeroCasosSinSeguimiento"] / df["NumeroCasos"] * 100
+    ).round(2)
     return df
 
 
-# --- Helpers de preprocesamiento (a implementar en la etapa 1) ------------
-# TODO(preprocesamiento): separar `Departamento`/`Municipio` en *_codigo y *_nombre.
-# TODO(preprocesamiento): parsear `FechaRegistro` ("MM/DD/YYYY ...") y `FechaCorte`.
-# TODO(preprocesamiento): recalcular porcentajes desde los conteos
-#     (las columnas Porcentaje* vienen corruptas; ver DATABASE.md).
+# Variables de baja cardinalidad que se tratan como categóricas.
+COLS_CATEGORIA = (
+    "Fuente",
+    "EntidadRegistro",
+    "DepartamentoCodigo",
+    "DepartamentoNombre",
+    "MunicipioCodigo",
+    "MunicipioNombre",
+)
+# Códigos DIVIPOLA: son identificadores (conservan ceros a la izquierda), no
+# magnitudes; no deben convertirse a tipo numérico.
+COLS_IDENTIFICADOR = ("DepartamentoCodigo", "MunicipioCodigo")
+
+
+def diagnosticar_tipos(df: pd.DataFrame) -> pd.DataFrame:
+    """Para cada columna no numérica y no fecha, informa si su contenido es
+    convertible a número y si corresponde a un identificador. Sirve para
+    detectar numéricas mal tipadas como texto sin convertir códigos por error."""
+    filas = []
+    for c in df.select_dtypes(exclude=["number", "datetime"]).columns:
+        convertible = bool(pd.to_numeric(df[c], errors="coerce").notna().all())
+        filas.append(
+            {
+                "columna": c,
+                "dtype": str(df[c].dtype),
+                "convertible_a_numerico": convertible,
+                "es_identificador": c in COLS_IDENTIFICADOR,
+            }
+        )
+    return pd.DataFrame(filas)
+
+
+def tipar_columnas(df: pd.DataFrame) -> pd.DataFrame:
+    """Convierte a `category` las variables de baja cardinalidad y trata la
+    semana epidemiológica como categoría ordinal (1..53). Los identificadores
+    permanecen como categoría textual, no como número."""
+    df = df.copy()
+    for c in COLS_CATEGORIA:
+        if c in df.columns:
+            df[c] = df[c].astype("category")
+    if "FechaRegistroSemana" in df.columns:
+        semanas = sorted(df["FechaRegistroSemana"].unique())
+        df["FechaRegistroSemana"] = df["FechaRegistroSemana"].astype(
+            pd.CategoricalDtype(categories=semanas, ordered=True)
+        )
+    return df
+
+
+def cobertura_ponderada(
+    df: pd.DataFrame, por, min_casos: int = 0
+) -> pd.DataFrame:
+    """Cobertura de seguimiento (%) por grupo, ponderada por casos:
+    `sum(ConSeguimiento) / sum(NumeroCasos)`. Filtra grupos con menos de
+    `min_casos` y devuelve el resultado ordenado de menor a mayor cobertura."""
+    g = (
+        df.groupby(por, observed=True)
+        .agg(casos=("NumeroCasos", "sum"), con=("NumeroCasosConSeguimiento", "sum"))
+        .reset_index()
+    )
+    g = g[g["casos"] >= min_casos]
+    g["CoberturaPct"] = (g["con"] / g["casos"] * 100).round(2)
+    return g.sort_values("CoberturaPct").reset_index(drop=True)
+
+
+def preprocesar(df: pd.DataFrame) -> pd.DataFrame:
+    """Pipeline completo de preprocesamiento del dato PRASS.
+
+    Aplica, en orden: tipado de fecha, separación de código y nombre
+    territorial, estandarización de texto, recálculo de cobertura, eliminación
+    de columnas constantes o corruptas y tipado de categóricas. Devuelve un
+    nuevo DataFrame.
+    """
+    df = df.copy()
+    df["FechaRegistro"] = parsear_fecha(df["FechaRegistro"])
+    for col in ("Departamento", "Municipio"):
+        cn = separar_codigo_nombre(df[col])
+        df[f"{col}Codigo"] = cn["codigo"]
+        df[f"{col}Nombre"] = cn["nombre"]
+    df["EntidadRegistro"] = estandarizar_texto(df["EntidadRegistro"])
+    df = agregar_cobertura(df)
+    df = df.drop(
+        columns=[
+            "FechaCorte",
+            "PorcentajeCasosSinSeguimiento",
+            "PorcentajeCasosConSeguimiento",
+            "Departamento",
+            "Municipio",
+        ]
+    )
+    df = tipar_columnas(df)
+    return df
