@@ -12,6 +12,59 @@ Fuente: `data/SegCovid19-Seguimiento_PRASS.csv`
 | Origen    | Programa PRASS — Seguimiento COVID-19 (Colombia) |
 | Fuente    | datos.gov.co · conjunto `r6r5-w84k` ([descarga](https://www.datos.gov.co/api/views/r6r5-w84k/rows.csv?accessType=DOWNLOAD)) |
 
+## Propósito del dato y variable objetivo
+
+Esta sección explica, antes del detalle técnico, **qué se recolectó, con qué fin y
+cuál es la variable que el estudio busca explicar**.
+
+### Por qué existe esta base
+PRASS (Pruebas, Rastreo y Aislamiento Selectivo Sostenible) fue la estrategia de
+vigilancia epidemiológica de Colombia durante la pandemia. Su meta operativa era
+que cada caso COVID-19 detectado recibiera **seguimiento**: contacto con el
+paciente, rastreo de sus contactos y verificación del aislamiento. Esta base es el
+**registro de cumplimiento** de esa estrategia: cuántos casos se identificaron y
+cuántos fueron efectivamente seguidos, desagregado por origen, tiempo, territorio
+y entidad reportante.
+
+### Qué representa cada fila (granularidad)
+No hay un registro por persona. Cada fila es un **agregado** que cuenta los casos
+de una combinación única de `Fuente` × `FechaRegistro` (semana) × `Departamento` ×
+`Municipio` × `EntidadRegistro`. Por eso `NumeroCasos` puede valer 1 o varios
+miles: es el total del grupo, no un individuo. La extracción es una sola foto, con
+fecha de corte única (25/05/2022).
+
+### Rol de cada variable: dimensiones, métricas y descartes
+- **Dimensiones (con qué se agrupa / posibles predictores):** `Fuente`,
+  `FechaRegistro`, `FechaRegistroSemana`, `Departamento`, `Municipio`,
+  `EntidadRegistro`.
+- **Métricas crudas (lo que se cuenta):** `NumeroCasos`,
+  `NumeroCasosConSeguimiento`, `NumeroCasosSinSeguimiento`. Cumplen la identidad
+  `Total = Con + Sin` en el 100 % de las filas, lo que las vuelve confiables.
+- **Variables descartadas:** `PorcentajeCasos*` (escala corrupta, ver más abajo) y
+  `FechaCorte` (constante).
+
+### La variable objetivo: cobertura de seguimiento
+El fenómeno de interés es la **cobertura de seguimiento**: qué fracción de los
+casos de un grupo recibió seguimiento. Como las columnas de porcentaje del origen
+están corruptas, se **recalcula** desde los conteos confiables:
+
+`CoberturaConSeguimiento (%) = NumeroCasosConSeguimiento / NumeroCasos · 100`
+
+**Para qué sirve.** Es el indicador que mide el desempeño del sistema PRASS y la
+variable que cualquier modelo posterior busca explicar o predecir. Permite
+responder las preguntas del estudio:
+- ¿Dónde están las **brechas** (grupos con baja cobertura)?
+- ¿La cobertura depende del **origen del caso** (`Fuente`), del **territorio** o de
+  la **entidad** reportante?
+- ¿Se **sostuvo** la cobertura durante las olas epidémicas?
+
+> Advertencia clave para el modelado: esta variable **no** sigue una distribución
+> habitual. Está fuertemente saturada en 100 % (al menos el 75 % de las filas en
+> exactamente 100 %), con masa adicional en 0 % y muy pocos valores intermedios. Su
+> forma —no una continua suave, sino una distribución **inflada en los extremos**—
+> condiciona qué modelos son válidos. El análisis de gráficas y la propuesta de
+> modelado están en `HALLAZGOS.md`.
+
 ## Diccionario de datos
 
 | # | Columna | Tipo lógico | Descripción |
