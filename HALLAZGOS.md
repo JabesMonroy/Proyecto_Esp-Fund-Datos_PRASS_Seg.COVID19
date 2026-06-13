@@ -111,6 +111,34 @@ tiempo aporta poco a explicar la cobertura (el seguimiento se sostuvo en los pic
 6. **Dependencia por construcción:** los conteos generan la cobertura; usarlos como
    predictores del % sería fuga de información.
 
+### Justificación pre-modelo: ¿la dispersión es estructural? (secciones 34–35)
+
+En lugar de afirmar de entrada que hay alta dispersión, se investiga su causa:
+primero se agrupa sin supervisión, luego se predice el grupo para medir cuán
+diferenciado está y por cuáles características, y de ahí se concluye.
+
+- **Conglomerados (K-Means, sección 34).** Sobre el perfil por grupo —cobertura,
+  tamaño en `log1p` y fuente, estandarizados— emergen **cuatro regímenes**: el
+  dominante `CONFIRMADOS` (88,6 % de los casos, cobertura ponderada 97,5 %), un
+  bloque de **brecha dura** `CONFIRMADOS` con cobertura 12,4 %, `SOSPECHOSOS`
+  ≈90,2 % y `POBLACIÓN NO AFILIADA` ≈75,5 %. El **eta² de la cobertura entre
+  conglomerados es 0,886** y el del tamaño es casi nulo (0,006).
+- **¿Hay variabilidad? Árbol que predice el conglomerado (sección 34).** Un árbol
+  de decisión (modelo surrogate del K-Means) predice el grupo con **exactitud
+  ≈0,999**: los conglomerados están **netamente diferenciados**, no se confunden.
+  Sus importancias revelan **por cuáles características** se agrupan: `Fuente`
+  (≈0,56) y cobertura (≈0,44); el **tamaño no aporta** (0,000). Veredicto: la
+  dispersión es **estructural, no ruido**, y su **causa** es el origen del caso
+  combinado con el régimen de cobertura (bloque casi totalmente seguido vs. bloque
+  de brecha dura). Esto justifica modelar y no solo describir. (Nota: a nivel
+  municipio la cobertura ponderada se homogeneíza —eta² 0,013—; la estructura vive
+  a nivel de grupo, no de territorio agregado.)
+- **Peso de variables (reducción de devianza, sección 35).** GLM binomial de un
+  solo factor por predictor: `Fuente` explica 12,1 % de la devianza con solo 2 gl
+  (el más **eficiente**), `EntidadRegistro` 35,7 % (67 gl, alta cardinalidad),
+  `DepartamentoNombre` 5,0 % (32 gl) y `FechaRegistroSemana` 0,3 % (irrelevante).
+  Confirma el orden de importancia del EDA y descarta apoyarse en el tiempo.
+
 ---
 
 ## Parte B — Qué modelo aplicar (inferido por factibilidad)
@@ -144,6 +172,28 @@ Por qué es la opción más factible y correcta:
   `statsmodels` (`GLM` familia `Binomial`).
 - **Sobredispersión** esperada por la heterogeneidad entre grupos → corregir con
   quasi-binomial o escalar a **beta-binomial**.
+
+**Por qué la binomial dentro de la familia exponencial (sección 38).** La familia
+la fija el dato: la respuesta es `k` éxitos sobre `N` ensayos (conteo acotado), no
+una magnitud continua ni un conteo sin tope.
+
+| Familia | Soporte | Media–varianza | ¿Aplica? |
+|---|---|---|---|
+| Normal | real continuo | varianza constante | No: acotada en `[0,100]` y heterocedástica. |
+| Gamma / inversa gaussiana | real positivo | Var ∝ media² | No: para continuas positivas. |
+| Poisson | enteros sin tope | Var = media | No: `k` está acotado por `N`. |
+| **Binomial** | 0…N éxitos | **Var = N·p·(1−p)** | **Sí**: proceso exacto, pondera por N, enlace logit en rango. |
+
+**Redefinición implementada (interacción Fuente × Departamento + quasi-binomial,
+sección 46).** A partir de los conglomerados —que muestran que la fuente y un régimen
+de **brecha dura** (interacción fuente × territorio) son lo que diferencia y ayuda a
+predecir la cobertura— se añadió el término `Fuente × Departamento` (solo en celdas con
+soporte y **no saturadas** en 0/100 %, para evitar separación) y se ajustó como
+**quasi-binomial**. Resultado: la interacción mejora el ajuste de forma **moderada**
+(pseudo-R² 0,514 → 0,529; Brier 0,0425 → 0,0421 en prueba), pero la **sobredispersión
+persiste** (2,77 → 2,94): es **heterogeneidad intrínseca entre grupos**, no un término
+faltante. El quasi-binomial corrige los errores estándar (escala 2,94, SE ≈ ×1,7); el
+camino estructural es la opción (2).
 
 ### (2) Modelo multinivel / jerárquico (GLMM logístico binomial)
 Extiende la opción (1) con **efectos aleatorios** por `Departamento` (con
